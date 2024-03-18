@@ -1,0 +1,26 @@
+---
+- name: Создание пользователей
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ users[inventory_hostname] }}"
+  when: users[inventory_hostname] is defined
+
+- name: Перезапуск и включение службы iperf3
+  ansible.builtin.service:
+    name: iperf3
+    state: restarted
+    enabled: true
+  when: inventory_hostname in ['HQ-R', 'ISP']
+
+- name: Выполнение команды iperf3
+  ansible.builtin.shell: 
+    cmd: iperf3 -c 11.11.11.1 --get-server-output > /opt/logfile.txt
+  when: inventory_hostname == 'HQ-R'
+
+- name: Копирование лог-файла с удаленного сервера на локальный сервер
+  ansible.builtin.fetch:
+    src: /opt/logfile.txt
+    dest: /home/unknown/ANSIBLE-SERVERS-ADMINSTRATION/roles/user_management/files/
+    flat: true
+  when: inventory_hostname == 'HQ-R'

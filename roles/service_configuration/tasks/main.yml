@@ -1,0 +1,76 @@
+---
+- name: "Backup"
+  become: true
+  when: inventory_hostname in ['HQ-R', 'BR-R']
+  block: 
+    - name: Копировать скрипты на удаленный сервер
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "/usr/local/sbin/{{ item.dest }}"
+        mode: 0755
+      loop:
+        - { src: "templates/backup.sh", dest: "backup.sh" }
+        - { src: "templates/daily_backup_cron.sh", dest: "daily_backup_cron.sh" }
+
+    - name: Запустить скрипт и ежедневное расписание
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/backup.sh"
+
+    - name: Запустить скрипт и ежедневное расписание
+      ansible.builtin.command: 
+        cmd: "/usr/local/sbin/daily_backup_cron.sh"
+
+- name: Настройка маршрутизации
+  become: true
+  when: inventory_hostname in ['HQ-R', 'BR-R', 'ISP']
+  block:
+    - name: Перезагрузка параметров конфигурационного файла
+      ansible.builtin.command:
+        cmd: sysctl -p
+
+- name: Настройка VPN и OSPF
+  become: true
+  when: inventory_hostname in ['HQ-R', 'BR-R']
+  block:
+    - name: Поднятие VPN и OSPF тунелей
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "/usr/local/sbin/{{ item.dest }}"
+        mode: 0755
+      loop:
+        - { src: "files/hq_ospf.sh", dest: "hq_ospf.sh", host: 'HQ-R' }
+        - { src: "files/hq_vpn.sh", dest: "hq_vpn.sh", host: 'HQ-R' }
+        - { src: "files/br_ospf.sh", dest: "br_ospf.sh", host: 'BR-R' }
+        - { src: "files/br_vpn.sh", dest: "br_vpn.sh", host: 'BR-R' }
+      when: item.host == inventory_hostname
+
+    - name: Запустить VPN скрипт и ежедневное расписание
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ 'vpn.sh' if 'vpn.sh' in item.dest else 'ospf.sh' }}"
+      loop:
+        - { dest: "hq_vpn.sh", host: 'HQ-R' }
+        - { dest: "br_vpn.sh", host: 'BR-R' }
+      when: item.host == inventory_hostname
+
+    - name: Настройки TTL для туннельного интерфейса gre1
+      ansible.builtin.command:
+        cmd: nmcli connection modify gre1 ip-tunnel.ttl 64
+
+    - name: Копирование конфигурации daemons
+      ansible.builtin.copy:
+        src: "files/daemons"
+        dest: "/etc/frr/daemons"
+        mode: 0755
+
+    - name: Перезагрузка radvd
+      ansible.builtin.systemd:
+        name: frr.service
+        state: restarted
+
+    - name: Запустить OSPF скрипт и ежедневное расписание
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ 'vpn.sh' if 'vpn.sh' in item.dest else 'ospf.sh' }}"
+      loop:
+        - { dest: "hq_ospf.sh", host: 'HQ-R' }
+        - { dest: "br_ospf.sh", host: 'BR-R' }
+      when: item.host == inventory_hostname

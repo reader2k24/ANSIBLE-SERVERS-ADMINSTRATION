@@ -1,0 +1,10 @@
+galaxy_info:
+  role_name: network_config
+  description: Настройка сетевых интерфейсов.
+  author: Magomedov Magomed
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all

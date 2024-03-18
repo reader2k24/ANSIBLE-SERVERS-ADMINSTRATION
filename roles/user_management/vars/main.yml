@@ -1,0 +1,14 @@
+users:
+  HQ-R:
+    - admin
+    - network-admin
+  BR-R:
+    - branch-admin
+    - network-admin
+  HQ-SRV:
+    - admin
+  BR-SRV:
+    - branch-admin
+    - network-admin
+  CLI:
+    - admin

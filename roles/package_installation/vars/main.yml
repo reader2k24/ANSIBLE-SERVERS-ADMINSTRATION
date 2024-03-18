@@ -1,0 +1,31 @@
+package_installation_apt_intall_ISP:
+  - network-manager
+  - chrony
+  - iperf3
+
+package_installation_apt_intall_HQ_R:
+  - network-manager
+  - chrony
+  - isc-dhcp-server
+  - radvd
+  - frr
+  - iperf3
+
+package_installation_apt_intall_BR_R:
+  - network-manager
+  - chrony
+  - frr
+
+package_installation_apt_intall_HQ_SRV:
+  - network-manager
+  - chrony
+  - openssh-server
+  - bind9
+
+package_installation_apt_intall_BR_SRV:
+  - network-manager
+  - chrony
+
+package_installation_apt_intall_CLI:
+  - network-manager
+  - chrony

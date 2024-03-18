@@ -1,0 +1,22 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     branch.work. root.branch.work. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      branch.work.
+@       IN      A       131.131.0.60
+@       IN      AAAA    131:131:d::6
+33      IN      PTR     br-r.branch.work
+42      IN      PTR     br-srv.branch.work
+1       IN      PTR     br-r.branch.work
+a       IN      PTR     br-srv.branch.work
+br-r            A       172.16.0.33
+br-r            AAAA    172:16:e::1
+br-srv          A       172.16.0.42
+br-srv          AAAA    172:16:e::a

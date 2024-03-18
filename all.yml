@@ -1,0 +1,25 @@
+---
+- name: Configure servers
+  hosts: all
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - include_role:
+        name: package_installation
+
+    - include_role:
+        name: network_config
+
+  tasks:
+    - include_role:
+        name: service_configuration
+
+    - include_role:
+        name: user_management
+
+    - include_role:
+        name: dns_server_configuration
+
+  post_tasks:
+    - include_role:
+        name: docker_setup

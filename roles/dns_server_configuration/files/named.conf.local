@@ -1,0 +1,43 @@
+//
+// Do any local configuration here
+//
+
+zone "hq.work" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.hq.work";
+};
+
+zone "branch.work" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.br.work";
+};
+
+zone "0.131.131.in-addr.arpa" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.hq.work";
+};
+
+zone "0.16.172.in-addr.arpa" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.br.work";
+};
+
+zone "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.0.0.0.1.3.1.0.1.3.1.0.ip6.arpa" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.hq.work";
+};
+
+zone "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.e.0.0.0.6.1.0.0.2.7.1.0.ip6.arpa" {
+        type master;
+        allow-transfer { any; };
+        file "/etc/bind/db.br.work";
+};
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";

@@ -1,0 +1,113 @@
+---
+- name: Установка Docker
+  become: true
+  tags: "docker"
+  when: inventory_hostname == 'HQ-SRV'
+  block:
+    - name: Добавляем universe
+      ansible.builtin.apt_repository:
+        repo: "deb http://deb.debian.org/debian/ {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Установка дополнительных пакетов
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - pipx
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: Создание каталога для ключей Docker
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Скачивание и установка ключа Docker GPG
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Установка Docker-asc с правами доступа для чтения всеми
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Добавление репозитория Docker в Apt sources
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: true
+        filename: docker
+
+    - name: Обновление кэша APT
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Установка Docker-ce
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        update_cache: true
+
+    - name: Проверка что Docker установлен и перезагружен
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+        enabled: true
+
+- name: Установка Docker-Compose
+  become: true
+  tags: "docker-compose"
+  block:
+    - name: Получение последней версии docker-compose
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/docker/compose/releases/latest
+        body_format: json
+      register: page
+
+    - name: Установка Docker-Compose
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ page.json.tag_name }}/docker-compose-Linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0675'
+
+- name: Установка Docker (PIP)
+  become: true
+  tags: "docker-pip"
+  block:
+    - name: Создание VENV
+      ansible.builtin.command:
+        cmd: python3 -m venv /etc/docker/docker-venv
+      args:
+        creates: /etc/docker/docker-venv/bin/activate
+
+    - name: Установка Docker
+      ansible.builtin.command:
+        cmd: "/etc/docker/docker-venv/bin/python -m pip install docker"
+      args:
+        creates: /etc/docker/docker-venv/bin/docker
+
+- name: Добавление пользователя и перезагрузка сервера
+  become: true
+  block:
+    - name: Добавление пользователя в группу Docker
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+        comment: "Пользователь Docker"
+        state: present
+
+    - name: Перезагрузка сервера
+      ansible.builtin.reboot:

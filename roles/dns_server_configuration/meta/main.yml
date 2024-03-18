@@ -1,0 +1,10 @@
+galaxy_info:
+  role_name: dns_server_configuration
+  description: Настройка DNS сервера на HQ-SRV сервере.
+  author: Magomedov Magomed
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all

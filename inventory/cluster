@@ -1,0 +1,25 @@
+[isp]
+ISP ansible_host=192.168.111.153 ansible_port=2223 ansible_user=root
+
+[hq_routers]
+HQ-R ansible_host=192.168.111.154 ansible_port=2224 ansible_user=root
+
+[br_routers]
+BR-R ansible_host=192.168.111.155 ansible_port=2225 ansible_user=root
+
+[hq_servers]
+HQ-SRV ansible_host=192.168.111.156 ansible_port=2226 ansible_user=root
+
+[br_servers]
+BR-SRV ansible_host=192.168.111.157 ansible_port=2227 ansible_user=root
+
+[cli]
+CLI ansible_host=192.168.111.158 ansible_port=2228 ansible_user=root
+
+[all:children]
+isp
+hq_routers
+br_routers
+hq_servers
+br_servers
+cli

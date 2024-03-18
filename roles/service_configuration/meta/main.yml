@@ -1,0 +1,10 @@
+galaxy_info:
+  role_name: service_configuration
+  description: Настройка маршрутизации.
+  author: Magomedov Magomed
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all

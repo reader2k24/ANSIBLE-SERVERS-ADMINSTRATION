@@ -1,0 +1,23 @@
+servers:
+  ISP:
+    name: ISP
+    script: "templates/isp_networkd.sh"
+
+  HQ-R:
+    name: HQ-R
+    script: "templates/hq_r_networkd.sh"
+
+  BR-R:
+    name: BR-R
+    script: "templates/br_r_networkd.sh"
+
+  BR-SRV:
+    name: BR-SRV
+    script: "templates/br_srv_networkd.sh"
+
+  CLI:
+    name: CLI
+    script: "templates/cli_networkd.sh"
+
+  HQ-SRV:
+    name: HQ-SRV

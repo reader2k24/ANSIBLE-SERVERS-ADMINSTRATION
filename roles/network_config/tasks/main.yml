@@ -1,0 +1,142 @@
+---
+- name: Изменения имен серверов
+  become: true
+  block:
+    - name: Установить имя сервера
+      ansible.builtin.hostname:
+        name: "{{ servers[inventory_hostname].name }}"
+      register: hostname_result
+      when: servers[inventory_hostname] is defined
+
+    - name: Перезагрузить сервер, если имя изменилось
+      ansible.builtin.reboot:
+      when: hostname_result.changed
+
+- name: "Настройка IP (STATIC)"
+  become: true
+  when: inventory_hostname in servers.keys() and inventory_hostname != 'HQ-SRV'
+  block:
+    - name: Копировать скрипт на удаленный сервер
+      ansible.builtin.copy:
+        src: "{{ servers[inventory_hostname].script }}"
+        dest: "/usr/local/sbin/{{ servers[inventory_hostname].script | basename }}"
+        mode: 0755
+
+    - name: Запустить скрипт
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ servers[inventory_hostname].script | basename }}"
+
+- name: "Настройка DHCP (IPv4)"
+  become: true
+  when: inventory_hostname == 'HQ-SRV'
+  block:
+    - name: Сохранение MAC адреса IPv4
+      ansible.builtin.shell:
+        cmd: "ip a show dev ens36 | grep -oE '[0-9a-f:]{17}' | head -n 1 > /root/mac.txt"
+
+    - name: Получение файла с удаленного хоста
+      ansible.builtin.fetch:
+        src: "/root/mac.txt"
+        dest: "/home/unknown/ANSIBLE-SERVERS-ADMINSTRATION/roles/network_config/files/mac.txt"
+        flat: true
+
+    - name: Получение содержимого файла mac.txt
+      ansible.builtin.set_fact:
+        mac: "{{ lookup('file', 'files/mac.txt') }}"
+
+    - name: Создание файла vars/main.yml с переменной MAC
+      ansible.builtin.template:
+        src: "templates/dhcpd.conf.j2"
+        dest: "/etc/dhcp/dhcpd.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      delegate_to: HQ-R
+      vars:
+        mac: "{{ mac }}"
+  vars:
+    mac: "{{ lookup('file', 'files/mac.txt') }}"
+
+- name: "Настройка DHCP (IPv6)"
+  become: true
+  when: inventory_hostname == 'HQ-R'
+  block:
+    - name: Перемещение файлов на удаленный хост
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - { src: "files/isc-dhcp-server", dest: "/etc/default/isc-dhcp-server" }
+        - { src: "files/dhcpd6.conf", dest: "/etc/dhcp/dhcpd6.conf" }
+        - { src: "files/radvd.conf", dest: "/etc/radvd.conf" }
+
+    - name: Перезагрузка radvd
+      ansible.builtin.systemd:
+        name: radvd.service
+        state: restarted
+
+    - name: Перезагрузка службы isc-dhcp-server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server.service
+        state: restarted
+
+- name: "Перезагрузка сетевого интерфейса на HQ-SRV"
+  become: true
+  when: inventory_hostname == 'HQ-SRV'
+  block:
+    - name: Копировать скрипт restnet.sh на удаленный сервер
+      ansible.builtin.copy:
+        src: templates/restnet.sh
+        dest: /root/restnet.sh
+        mode: 0755
+
+    - name: Запустить скрипт restnet.sh
+      ansible.builtin.command:
+        cmd: "/root/restnet.sh"
+
+- name: "Настройка IPv6"
+  become: true
+  when: inventory_hostname == 'HQ-R'
+  block:
+    - name: Сохранение DUID в файл /root/duid.txt
+      ansible.builtin.shell:
+        cmd: "systemctl status isc-dhcp-server.service | grep -oE 'duid [0-9a-f:]+' | awk '{print $NF}' | head -n 1 > /root/duid.txt"
+      ignore_errors: true
+      no_log: true
+      loop: "{{ range(3) }}"
+
+    - name: Получение файла с удаленного хоста
+      ansible.builtin.fetch:
+        src: "/root/duid.txt"
+        dest: "/home/unknown/ANSIBLE-SERVERS-ADMINSTRATION/roles/network_config/files/duid.txt"
+        flat: true
+
+    - name: Получение содержимого файла duid.txt
+      ansible.builtin.set_fact:
+        duid: "{{ lookup('file', 'files/duid.txt') }}"
+      when: lookup('file', 'files/duid.txt') | length > 0
+
+    - name: Создание файла vars/main.yml с переменной DUID
+      ansible.builtin.template:
+        src: "templates/dhcpd6.conf.j2"
+        dest: "/etc/dhcp/dhcpd6.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      when: duid is defined
+
+    - name: Перезагрузка службы isc-dhcp-server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server.service
+        state: restarted
+
+- name: "Перезагрузка сетевого интерфейса на HQ-SRV"
+  become: true
+  when: inventory_hostname == 'HQ-SRV'
+  block:
+    - name: Запустить скрипт hq_r_networkd.sh
+      ansible.builtin.command:
+        cmd: "/root/restnet.sh"

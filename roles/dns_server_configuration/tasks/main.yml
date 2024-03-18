@@ -1,0 +1,58 @@
+---
+- name: "Настройка DNS на сервере HQ-SRV"
+  become: true
+  when: inventory_hostname == 'HQ-SRV'
+  block:
+    - name: Перемещение файлов на удаленный хост
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/bind/"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - "db.hq.work"
+        - "db.br.work"
+        - "named.conf.local"
+        - "named.conf.options"
+
+    - name: Проверка изменений named конфигурации
+      ansible.builtin.shell:
+        cmd: named-checkconf -z
+
+    - name: Перезагрузка named
+      ansible.builtin.systemd:
+        name: named.service
+        state: restarted
+
+- name: "Настройка DNS"
+  become: true
+  vars:
+    script_src: "{{ 'hq_r_networkd.sh' if inventory_hostname == 'HQ-R' else 'br_r_networkd.sh' }}"
+  block:
+    - name: Перемещение файлов и скрипта на удаленный хост
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/usr/local/sbin/"
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "files/dhcpd.conf"
+        - "files/dhcpd6.conf"
+        - "files/{{ script_src }}"
+
+    - name: Запустить скрипт
+      ansible.builtin.command:
+        cmd: "/usr/local/sbin/{{ script_src }}"
+
+    - name: Перезагрузка DHCP сервера
+      ansible.builtin.systemd:
+        name: isc-dhcp-server.service
+        state: restarted
+
+    - name: Перезагрузка NetworkManager
+      ansible.builtin.systemd:
+        name: NetworkManager
+        state: restarted
+  when: inventory_hostname in ['HQ-R', 'BR-R']

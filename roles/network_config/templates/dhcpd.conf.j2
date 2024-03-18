@@ -1,0 +1,16 @@
+default-lease-time 600;
+max-lease-time 7200;
+
+ddns-update-style none;
+
+authoritative;
+
+subnet 131.131.0.0 netmask 255.255.255.192 {
+        range 131.131.0.11 131.131.0.61;
+        option routers 131.131.0.1;
+}
+
+host HQ-SRV {
+        hardware ethernet {{ mac }};
+        fixed-address 131.131.0.60;
+}

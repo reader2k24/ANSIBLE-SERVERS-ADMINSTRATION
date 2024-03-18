@@ -1,0 +1,18 @@
+---
+- name: Обновление списков пакетов
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Установка пакетов на сервера
+  ansible.builtin.package:
+    name: "{{ item.packages }}"
+    state: present
+  loop:
+    - { group: 'isp', packages: "{{ package_installation_apt_intall_ISP }}" }
+    - { group: 'hq_routers', packages: "{{ package_installation_apt_intall_HQ_R }}" }
+    - { group: 'br_routers', packages: "{{ package_installation_apt_intall_BR_R }}" }
+    - { group: 'hq_servers', packages: "{{ package_installation_apt_intall_HQ_SRV }}" }
+    - { group: 'br_servers', packages: "{{ package_installation_apt_intall_BR_SRV }}" }
+    - { group: 'cli', packages: "{{ package_installation_apt_intall_CLI }}" }
+  when: inventory_hostname in groups[item.group]
+  no_log: true
