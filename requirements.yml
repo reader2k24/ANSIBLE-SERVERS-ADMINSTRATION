@@ -1,4 +1,2 @@
 collections:
-  # - name: community.docker
-  - name: community.general
-    version: 6.4.0
+  - name: community.docker
